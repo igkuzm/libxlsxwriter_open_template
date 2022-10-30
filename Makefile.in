@@ -1,0 +1,63 @@
+# File              : Makefile.in
+# Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
+# Date              : 05.10.2021
+# Last Modified Date: 30.10.2022
+# Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
+#!/usr/bin/make -f
+
+CC=@CC@
+
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+
+top_srcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= $(srcdir)
+
+DESTDIR		=
+bindir		= @bindir@
+includedir	= @includedir@
+libdir		= @libdir@
+shlibdir	= @shlibdir@
+datarootdir	= @datarootdir@
+datadir		= @datadir@
+mandir		= @mandir@
+
+TARGETOS=@TARGETOS@
+
+CROSS_COMPILING=@CROSS_COMPILING@
+
+ARCHS=@ARCHS@
+
+CFLAGS=@CFLAGS@
+LDFLAGS=@LDFLAGS@
+
+LIBXLSXWRITER_SRC_DIR = libxlsxwriter/src
+LIBXLSXWRITER_INC_DIR = libxlsxwriter/include
+LIBXLSXWRITER_TPR_DIR = libxlsxwriter/third_party
+LIBXLSXWRITER_SOURCES = ${LIBXLSXWRITER_SRC_DIR}/app.c ${LIBXLSXWRITER_SRC_DIR}/chart.c ${LIBXLSXWRITER_SRC_DIR}/chartsheet.c ${LIBXLSXWRITER_SRC_DIR}/comment.c ${LIBXLSXWRITER_SRC_DIR}/content_types.c ${LIBXLSXWRITER_SRC_DIR}/core.c ${LIBXLSXWRITER_SRC_DIR}/custom.c ${LIBXLSXWRITER_SRC_DIR}/drawing.c ${LIBXLSXWRITER_SRC_DIR}/format.c ${LIBXLSXWRITER_SRC_DIR}/hash_table.c ${LIBXLSXWRITER_SRC_DIR}/metadata.c ${LIBXLSXWRITER_SRC_DIR}/packager.c ${LIBXLSXWRITER_SRC_DIR}/relationships.c ${LIBXLSXWRITER_SRC_DIR}/shared_strings.c ${LIBXLSXWRITER_SRC_DIR}/styles.c ${LIBXLSXWRITER_SRC_DIR}/table.c ${LIBXLSXWRITER_SRC_DIR}/theme.c ${LIBXLSXWRITER_SRC_DIR}/utility.c ${LIBXLSXWRITER_SRC_DIR}/vml.c ${LIBXLSXWRITER_SRC_DIR}/workbook.c ${LIBXLSXWRITER_SRC_DIR}/worksheet.c ${LIBXLSXWRITER_SRC_DIR}/xmlwriter.c 
+MINIZIP_SOURCES = ${LIBXLSXWRITER_TPR_DIR}/minizip/ioapi.c ${LIBXLSXWRITER_TPR_DIR}/minizip/miniunz.c ${LIBXLSXWRITER_TPR_DIR}/minizip/minizip.c ${LIBXLSXWRITER_TPR_DIR}/minizip/mztools.c ${LIBXLSXWRITER_TPR_DIR}/minizip/unzip.c ${LIBXLSXWRITER_TPR_DIR}/minizip/zip.c
+OBJECTS = build/*.o
+LIB = build/libxlsxwriter.a
+
+EXECUTABLE = build/test
+
+all: $(EXECUTABLE)
+
+${EXECUTABLE}: ${LIB} test.c 
+	$(CC) test.c ${LIB} -o ${EXECUTABLE}
+
+${LIB}: ${OBJECTS}
+	 ar rcs ${LIB} ${OBJECTS}
+
+${OBJECTS}: ${LIBXLSXWRITER_SOURCES} ${MINIZIP_SOURCES}
+	mkdir -p build
+	$(foreach source, ${LIBXLSXWRITER_SOURCES}, $(CC) -c $(source) -I${LIBXLSXWRITER_INC_DIR} -o build/$(source:${LIBXLSXWRITER_SRC_DIR}/%.c=%.o); )
+	$(foreach source, ${MINIZIP_SOURCES}, $(CC) -c $(source) -I${LIBXLSXWRITER_TPR_DIR}/minizip -o build/$(source:${LIBXLSXWRITER_TPR_DIR}/minizip/%.c=%.o); )
+
+clean:
+	$(RM) -r build
+	$(RM) Makefile
+
+.PHONY: all clean install uninstall
+

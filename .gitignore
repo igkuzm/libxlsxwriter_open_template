@@ -1,0 +1,11 @@
+.DS_Store
+.vs
+.idea
+cmake-build-debug
+*.swp
+build
+.o
+Makefile
+.stash
+.cache
+qstroybat.pro.user
