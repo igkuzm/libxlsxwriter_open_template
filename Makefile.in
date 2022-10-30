@@ -32,11 +32,21 @@ ARCHS=@ARCHS@
 CFLAGS=@CFLAGS@
 LDFLAGS=@LDFLAGS@
 
+LIBXLSXWRITER_TPR_DIR = libxlsxwriter/third_party
 LIBXLSXWRITER_SRC_DIR = libxlsxwriter/src
 LIBXLSXWRITER_INC_DIR = libxlsxwriter/include
-LIBXLSXWRITER_TPR_DIR = libxlsxwriter/third_party
 LIBXLSXWRITER_SOURCES = ${LIBXLSXWRITER_SRC_DIR}/app.c ${LIBXLSXWRITER_SRC_DIR}/chart.c ${LIBXLSXWRITER_SRC_DIR}/chartsheet.c ${LIBXLSXWRITER_SRC_DIR}/comment.c ${LIBXLSXWRITER_SRC_DIR}/content_types.c ${LIBXLSXWRITER_SRC_DIR}/core.c ${LIBXLSXWRITER_SRC_DIR}/custom.c ${LIBXLSXWRITER_SRC_DIR}/drawing.c ${LIBXLSXWRITER_SRC_DIR}/format.c ${LIBXLSXWRITER_SRC_DIR}/hash_table.c ${LIBXLSXWRITER_SRC_DIR}/metadata.c ${LIBXLSXWRITER_SRC_DIR}/packager.c ${LIBXLSXWRITER_SRC_DIR}/relationships.c ${LIBXLSXWRITER_SRC_DIR}/shared_strings.c ${LIBXLSXWRITER_SRC_DIR}/styles.c ${LIBXLSXWRITER_SRC_DIR}/table.c ${LIBXLSXWRITER_SRC_DIR}/theme.c ${LIBXLSXWRITER_SRC_DIR}/utility.c ${LIBXLSXWRITER_SRC_DIR}/vml.c ${LIBXLSXWRITER_SRC_DIR}/workbook.c ${LIBXLSXWRITER_SRC_DIR}/worksheet.c ${LIBXLSXWRITER_SRC_DIR}/xmlwriter.c 
-MINIZIP_SOURCES = ${LIBXLSXWRITER_TPR_DIR}/minizip/ioapi.c ${LIBXLSXWRITER_TPR_DIR}/minizip/miniunz.c ${LIBXLSXWRITER_TPR_DIR}/minizip/minizip.c ${LIBXLSXWRITER_TPR_DIR}/minizip/mztools.c ${LIBXLSXWRITER_TPR_DIR}/minizip/unzip.c ${LIBXLSXWRITER_TPR_DIR}/minizip/zip.c
+
+MINIZIP_SOURCES = libxlsxwriter/third_party/minizip/ioapi.c libxlsxwriter/third_party/minizip/miniunz.c libxlsxwriter/third_party/minizip/minizip.c libxlsxwriter/third_party/minizip/mztools.c libxlsxwriter/third_party/minizip/unzip.c libxlsxwriter/third_party/minizip/zip.c
+
+DTOA_SOURCES = libxlsxwriter/third_party/dtoa/emyg_dtoa.c
+
+MD5_SOURCES = libxlsxwriter/third_party/md5/md5.c
+
+TMPFILEPLUS_SOURCES = libxlsxwriter/third_party/tmpfileplus/tmpfileplus.c
+
+SOURCES = ezxml.c zip.c
+
 OBJECTS = build/*.o
 LIB = build/libxlsxwriter.a
 
@@ -45,15 +55,19 @@ EXECUTABLE = build/test
 all: $(EXECUTABLE)
 
 ${EXECUTABLE}: ${LIB} test.c 
-	$(CC) test.c ${LIB} -o ${EXECUTABLE}
+	$(CC) test.c ${LIB} -o ${EXECUTABLE} -lz
 
 ${LIB}: ${OBJECTS}
 	 ar rcs ${LIB} ${OBJECTS}
 
-${OBJECTS}: ${LIBXLSXWRITER_SOURCES} ${MINIZIP_SOURCES}
+${OBJECTS}: ${LIBXLSXWRITER_SOURCES} ${MINIZIP_SOURCES} ${DTOA_SOURCES} ${MD5_SOURCES} ${TMPFILEPLUS_SOURCES} ${SOURCES}
 	mkdir -p build
-	$(foreach source, ${LIBXLSXWRITER_SOURCES}, $(CC) -c $(source) -I${LIBXLSXWRITER_INC_DIR} -o build/$(source:${LIBXLSXWRITER_SRC_DIR}/%.c=%.o); )
-	$(foreach source, ${MINIZIP_SOURCES}, $(CC) -c $(source) -I${LIBXLSXWRITER_TPR_DIR}/minizip -o build/$(source:${LIBXLSXWRITER_TPR_DIR}/minizip/%.c=%.o); )
+	$(foreach source, ${LIBXLSXWRITER_SOURCES}, $(CC) -c $(source) -I${LIBXLSXWRITER_INC_DIR} -o build/$(source:${LIBXLSXWRITER_SRC_DIR}/%.c=%_xlsxwriter.o); )
+	$(foreach source, ${MINIZIP_SOURCES}, $(CC) -c $(source) -Ilibxlsxwriter/third_party/minizip -o build/$(source:libxlsxwriter/third_party/minizip/%.c=%_minizip.o); )
+	$(foreach source, ${DTOA_SOURCES}, $(CC) -c $(source) -Ilibxlsxwriter/third_party/dtoa -o build/$(source:libxlsxwriter/third_party/dtoa/%.c=%_dtoa.o); )
+	$(foreach source, ${MD5_SOURCES}, $(CC) -c $(source) -Ilibxlsxwriter/third_party/md5 -o build/$(source:libxlsxwriter/third_party/md5/%.c=%_md5.o); )
+	$(foreach source, ${TMPFILEPLUS_SOURCES}, $(CC) -c $(source) -Ilibxlsxwriter/third_party/tmpfileplus -o build/$(source:libxlsxwriter/third_party/tmpfileplus/%.c=%_tmpfileplus.o); )
+	$(foreach source, ${SOURCES}, $(CC) -c $(source) -o build/$(source:%.c=%.o); )
 
 clean:
 	$(RM) -r build
