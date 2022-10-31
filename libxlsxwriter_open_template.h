@@ -50,6 +50,9 @@ ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize);
 extern "C" {
 #endif
 
+	/*
+	 * create workbook from template
+	 */
 	lxw_workbook *workbook_new_from_template(const char *filename, const char *template);
 
 
@@ -63,7 +66,6 @@ extern "C" {
 	};
 
 	const struct key_value border_styles[] = {
-		{LXW_BORDER_THIN,                "none"             },
 		{LXW_BORDER_THIN,                "thin"             },
 		{LXW_BORDER_MEDIUM,              "medium"           },
 		{LXW_BORDER_DASHED,              "dashed"           },
@@ -80,7 +82,6 @@ extern "C" {
 	};
 
 	const struct key_value pattern_types[] = {
-		{LXW_PATTERN_NONE,           	 "none"            },
 		{LXW_PATTERN_SOLID,           	 "solid"           },
 		{LXW_PATTERN_MEDIUM_GRAY,        "mediumGray"      },
 		{LXW_PATTERN_DARK_GRAY,          "darkGray"        },
@@ -103,20 +104,20 @@ extern "C" {
 
 	const struct key_value horizontal_alignment[] = {
 		{LXW_ALIGN_LEFT,                 "left"            },
-        	{LXW_ALIGN_CENTER,               "center"          },
-        	{LXW_ALIGN_RIGHT,                "right"           },
-        	{LXW_ALIGN_FILL,                 "fill"            },
-        	{LXW_ALIGN_JUSTIFY,              "justify"         },
-        	{LXW_ALIGN_CENTER_ACROSS,        "centerContinuous"},
-        	{LXW_ALIGN_DISTRIBUTED,          "distributed"     },
+        {LXW_ALIGN_CENTER,               "center"          },
+        {LXW_ALIGN_RIGHT,                "right"           },
+        {LXW_ALIGN_FILL,                 "fill"            },
+        {LXW_ALIGN_JUSTIFY,              "justify"         },
+        {LXW_ALIGN_CENTER_ACROSS,        "centerContinuous"},
+        {LXW_ALIGN_DISTRIBUTED,          "distributed"     },
 	};
 
 	const struct key_value vertical_alignment[] = {
 		{LXW_ALIGN_VERTICAL_TOP,         "top"             },
-        	{LXW_ALIGN_VERTICAL_BOTTOM,      "bottom"          },
-        	{LXW_ALIGN_VERTICAL_CENTER,      "center"          },
-        	{LXW_ALIGN_VERTICAL_JUSTIFY,     "justify"         },
-        	{LXW_ALIGN_VERTICAL_DISTRIBUTED, "distributed"     },
+        {LXW_ALIGN_VERTICAL_BOTTOM,      "bottom"          },
+        {LXW_ALIGN_VERTICAL_CENTER,      "center"          },
+        {LXW_ALIGN_VERTICAL_JUSTIFY,     "justify"         },
+        {LXW_ALIGN_VERTICAL_DISTRIBUTED, "distributed"     },
 	};
 
 	void parse_worksheet(lxw_workbook *wb, ezxml_t xml, lxw_worksheet *ws, ezxml_t sst, ezxml_t styles) {
@@ -281,7 +282,6 @@ extern "C" {
 								//set fill
 								ezxml_t patternFill = ezxml_get(styles, "fills", 0, "fill", atoi(fillId), "patternFill", 0, "");
 								if (patternFill){
-									bool has_color = false;
 									ezxml_t fgColor = ezxml_child(patternFill, "fgColor");
 									if (fgColor){
 										const char * rgb = ezxml_attr(fgColor, "rgb"); 
@@ -291,20 +291,17 @@ extern "C" {
 											sscanf(rgb, "%x", &rgb_int);
 											//set color
 											format_set_fg_color(format, rgb_int);
-											has_color = true;
 										}
 										const char * fgColor_indexed = ezxml_attr(fgColor, "indexed");
 										if (fgColor_indexed){
 											format_set_color_indexed(format, atoi(fgColor_indexed));
-											has_color = true;
 										}
-										/*
+										
 										const char * fgColor_theme = ezxml_attr(fgColor, "theme"); 
 										if (fgColor_theme){
 											format_set_theme(format, atoi(fgColor_theme));
-											has_color = true;
 										}
-										*/										
+																			
 									}
 									ezxml_t bgColor = ezxml_child(patternFill, "bgColor");
 									if (bgColor){
@@ -315,31 +312,26 @@ extern "C" {
 											sscanf(rgb, "%x", &rgb_int);
 											//set color
 											format_set_bg_color(format, rgb_int);
-											has_color = true;
 										}
 										
 										const char * bgColor_indexed = ezxml_attr(bgColor, "indexed"); 
 										if (bgColor_indexed){
 											format_set_color_indexed(format, atoi(bgColor_indexed));
-											has_color = true;
 										}										
-										/*
+										
 										const char * bgColor_theme = ezxml_attr(bgColor, "theme"); 
 										if (bgColor_theme){
 											format_set_theme(format, atoi(bgColor_theme));
-											has_color = true;
 										}
-										*/										
+																			
 									}
 									const char * patternType = ezxml_attr(patternFill, "patternType");
 									if (patternType){
-										if (has_color){ //cant get color from theme and indexed yet
-											for (i=0; i<sizeof(pattern_types)/sizeof(struct key_value); i++)
-												if (strcmp(patternType, pattern_types[i].key) == 0){
-													format_set_pattern(format, pattern_types[i].value);												
-													break;
-												}
-										}
+										for (i=0; i<sizeof(pattern_types)/sizeof(struct key_value); i++)
+											if (strcmp(patternType, pattern_types[i].key) == 0){
+												//format_set_pattern(format, pattern_types[i].value);												
+												break;
+											}
 									}
 								}
 							}						
@@ -639,6 +631,7 @@ extern "C" {
 			void *buf; size_t bufsize;
 			zip_entry_read(zip, &buf, &bufsize);
 			sst = ezxml_parse_str((char*)buf, bufsize);
+			zip_entry_close(zip);
 		}
 
 		//load styles file
@@ -648,17 +641,21 @@ extern "C" {
 			void *buf; size_t bufsize;
 			zip_entry_read(zip, &buf, &bufsize);
 			styles = ezxml_parse_str((char*)buf, bufsize);
+			zip_entry_close(zip);
 		}		
 
 		/*load workbook file*/
-		zip_entry_open(zip, "xl/workbook.xml");
-		void *buf; size_t bufsize;
-		zip_entry_read(zip, &buf, &bufsize);
-		ezxml_t workbook = 
-				ezxml_parse_str((char*)buf, bufsize);
-		/*! TODO: fill workbookproperties
-		 *  \todo fill workbookproperties	
-		 */
+		ezxml_t workbook;
+		{
+			zip_entry_open(zip, "xl/workbook.xml");
+			void *buf; size_t bufsize;
+			zip_entry_read(zip, &buf, &bufsize);
+			workbook = ezxml_parse_str((char*)buf, bufsize);
+			zip_entry_close(zip);
+			/*! TODO: fill workbookproperties
+			 *  \todo fill workbookproperties	
+			 */
+		}
 
 		//get sheets
 		ezxml_t sheets = ezxml_child(workbook, "sheets");
@@ -681,13 +678,19 @@ extern "C" {
 						ezxml_parse_str((char*)buf, bufsize);
 				if (sheet_xml){
 					parse_worksheet(wb, sheet_xml, ws, sst, styles);	
+					ezxml_free(sheet_xml);
 				}
+				zip_entry_close(zip);
 			}
 		}
-			
-		
+		if (styles)
+			ezxml_free(sheets);
+		if(styles)
+			ezxml_free(styles);
+		if(sst)
+			ezxml_free(sst);
 
-		
+		zip_close(zip);
 
 		return wb;	
 	}
@@ -696,7 +699,6 @@ extern "C" {
 }
 #endif
 
-#endif // _LXLSXWOT_H	
 
 /*
  * MINIZ
@@ -11334,8 +11336,8 @@ extern ZIP_EXPORT int zip_extract(const char *zipname, const char *dir,
 #include <unistd.h>
 #endif
 
-#include "miniz.h"
-#include "zip.h"
+//#include "miniz.h"
+//#include "zip.h"
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -13137,19 +13139,19 @@ extern "C" {
 #define EZXML_TXTM    0x40 // txt is malloced
 #define EZXML_DUP     0x20 // attribute name and value are strduped
 
-typedef struct ezxml *ezxml_t;
-struct ezxml {
-    char *name;      // tag name
-    char **attr;     // tag attributes { name, value, name, value, ... NULL }
-    char *txt;       // tag character content, empty string if none
-    size_t off;      // tag offset from start of parent tag character content
-    ezxml_t next;    // next tag with same name in this section at this depth
-    ezxml_t sibling; // next tag with different name in same section and depth
-    ezxml_t ordered; // next tag, same section and depth, in original order
-    ezxml_t child;   // head of sub tag list, NULL if none
-    ezxml_t parent;  // parent tag, NULL if current tag is root tag
-    short flags;     // additional information
-};
+//typedef struct ezxml *ezxml_t;
+//struct ezxml {
+    //char *name;      // tag name
+    //char **attr;     // tag attributes { name, value, name, value, ... NULL }
+    //char *txt;       // tag character content, empty string if none
+    //size_t off;      // tag offset from start of parent tag character content
+    //ezxml_t next;    // next tag with same name in this section at this depth
+    //ezxml_t sibling; // next tag with different name in same section and depth
+    //ezxml_t ordered; // next tag, same section and depth, in original order
+    //ezxml_t child;   // head of sub tag list, NULL if none
+    //ezxml_t parent;  // parent tag, NULL if current tag is root tag
+    //short flags;     // additional information
+//};
 
 // Given a string of xml data and its length, parses it and creates an ezxml
 // structure. For efficiency, modifies the data by adding null terminators
@@ -14259,8 +14261,6 @@ ezxml_t ezxml_cut(ezxml_t xml)
     xml->ordered = xml->sibling = xml->next = NULL;
     return xml;
 }
-
-
-
-
 #endif // _EZXML_H
+
+#endif // _LXLSXWOT_H	

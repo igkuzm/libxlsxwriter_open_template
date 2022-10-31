@@ -1,7 +1,7 @@
 # File              : Makefile.in
 # Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
 # Date              : 05.10.2021
-# Last Modified Date: 30.10.2022
+# Last Modified Date: 31.10.2022
 # Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
 #!/usr/bin/make -f
 
@@ -45,7 +45,7 @@ MD5_SOURCES = libxlsxwriter/third_party/md5/md5.c
 
 TMPFILEPLUS_SOURCES = libxlsxwriter/third_party/tmpfileplus/tmpfileplus.c
 
-SOURCES = ezxml.c zip.c
+#SOURCES = ezxml.c zip.c
 
 OBJECTS = build/*.o
 LIB = build/libxlsxwriter.a
@@ -60,14 +60,14 @@ ${EXECUTABLE}: ${LIB} test.c
 ${LIB}: ${OBJECTS}
 	 ar rcs ${LIB} ${OBJECTS}
 
-${OBJECTS}: ${LIBXLSXWRITER_SOURCES} ${MINIZIP_SOURCES} ${DTOA_SOURCES} ${MD5_SOURCES} ${TMPFILEPLUS_SOURCES} ${SOURCES}
+${OBJECTS}: ${LIBXLSXWRITER_SOURCES} ${MINIZIP_SOURCES} ${DTOA_SOURCES} ${MD5_SOURCES} ${TMPFILEPLUS_SOURCES} #${SOURCES}
 	mkdir -p build
 	$(foreach source, ${LIBXLSXWRITER_SOURCES}, $(CC) -c $(source) -I${LIBXLSXWRITER_INC_DIR} -o build/$(source:${LIBXLSXWRITER_SRC_DIR}/%.c=%_xlsxwriter.o); )
 	$(foreach source, ${MINIZIP_SOURCES}, $(CC) -c $(source) -Ilibxlsxwriter/third_party/minizip -o build/$(source:libxlsxwriter/third_party/minizip/%.c=%_minizip.o); )
 	$(foreach source, ${DTOA_SOURCES}, $(CC) -c $(source) -Ilibxlsxwriter/third_party/dtoa -o build/$(source:libxlsxwriter/third_party/dtoa/%.c=%_dtoa.o); )
 	$(foreach source, ${MD5_SOURCES}, $(CC) -c $(source) -Ilibxlsxwriter/third_party/md5 -o build/$(source:libxlsxwriter/third_party/md5/%.c=%_md5.o); )
 	$(foreach source, ${TMPFILEPLUS_SOURCES}, $(CC) -c $(source) -Ilibxlsxwriter/third_party/tmpfileplus -o build/$(source:libxlsxwriter/third_party/tmpfileplus/%.c=%_tmpfileplus.o); )
-	$(foreach source, ${SOURCES}, $(CC) -c $(source) -o build/$(source:%.c=%.o); )
+	#$(foreach source, ${SOURCES}, $(CC) -c $(source) -o build/$(source:%.c=%.o); )
 
 clean:
 	$(RM) -r build
