@@ -329,6 +329,10 @@ extern "C" {
 									if (patternType){
 										for (i=0; i<sizeof(pattern_types)/sizeof(struct key_value); i++)
 											if (strcmp(patternType, pattern_types[i].key) == 0){
+												/*! TODO: pattern
+												*  \todo pattern
+												*/
+												//pattern not working yet
 												//format_set_pattern(format, pattern_types[i].value);												
 												break;
 											}
@@ -368,6 +372,15 @@ extern "C" {
 											//set font color
 											format_set_font_color(format, rgb_int);
 										}
+										const char * indexed = ezxml_attr(color, "indexed");
+										if (indexed){
+											format_set_color_indexed(format, atoi(indexed));
+										}
+										
+										const char * theme = ezxml_attr(color, "theme"); 
+										if (theme){
+											format_set_theme(format, atoi(theme));
+										}										
 									}									
 									ezxml_t family = ezxml_child(font, "family");
 									if (family){
@@ -438,6 +451,15 @@ extern "C" {
 												//set font color
 												format_set_left_color(format, rgb_int);
 											}
+											const char * indexed = ezxml_attr(color, "indexed");
+											if (indexed){
+												format_set_color_indexed(format, atoi(indexed));
+											}
+											
+											const char * theme = ezxml_attr(color, "theme"); 
+											if (theme){
+												format_set_theme(format, atoi(theme));
+											}											
 										}
 									}
 									ezxml_t right = ezxml_child(border, "right");
@@ -582,13 +604,121 @@ extern "C" {
 						ezxml_t v = ezxml_child(cell, "v");
 						if (v){
 							const char * value = v->txt;
-							ezxml_t t = ezxml_get(sst, "si", atoi(value), "t", 0, "");
-							if (t){
-								const char * string = t->txt;
-								if(string)
-									worksheet_write_string(ws, CELL(r), string, format);
-							}
-						}						
+							ezxml_t _r = ezxml_get(sst, "si", atoi(value), "r", 0, "");
+							if (_r){ //shared ritch string
+								//allocate ritch string
+								lxw_rich_string_tuple **ritch_string = malloc(sizeof(lxw_rich_string_tuple));
+								if (!ritch_string)
+									break;
+								
+								for (i=0; _r; _r=_r->next){
+									//add format
+									lxw_format *text_format = workbook_add_format(wb);
+									
+									ezxml_t t = ezxml_child(_r, "t");
+									if (t){
+										const char * space = ezxml_attr(t, "xml:space");
+										if (space){	
+											///* TODO:  xml:space="preserve" */
+										}
+										ezxml_t rPr = ezxml_child(_r, "rPr");
+										if (rPr){
+											ezxml_t sz = ezxml_child(rPr, "sz"); //size
+											if (sz){
+												const char * val = ezxml_attr(sz, "val");
+												if(val)
+													format_set_font_size(text_format, atof(val));
+											}									
+											ezxml_t b = ezxml_child(rPr, "b"); //bold
+											if (b){
+												format_set_bold(text_format);
+											}									
+											ezxml_t i = ezxml_child(rPr, "i"); //italic
+											if (i){
+												format_set_italic(text_format);
+											}									
+											ezxml_t color = ezxml_child(rPr, "color");
+											if (color){
+												const char * rgb = ezxml_attr(color, "rgb");
+												if (rgb){
+													//get hex from string
+													int rgb_int = 0;
+													sscanf(rgb, "%x", &rgb_int);
+													//set font color
+													format_set_font_color(text_format, rgb_int);
+												}
+											}										
+											ezxml_t rFont = ezxml_child(rPr, "rFont");
+											if (rFont){
+												const char * val = ezxml_attr(rFont, "val");
+												if(val)
+													format_set_font_name(text_format, val);										
+											
+												ezxml_t family = ezxml_child(rFont, "family");
+												if (family){
+													const char * fval = ezxml_attr(family, "val");
+													if(fval)
+														format_set_font_family(text_format, atoi(fval));
+												}									
+
+												ezxml_t charset = ezxml_child(rFont, "charset");
+												if (charset){
+													const char * cval = ezxml_attr(charset, "val");
+													if(cval)
+														format_set_font_charset(text_format, atoi(cval));
+												}
+												ezxml_t scheme = ezxml_child(rFont, "scheme");
+												if (scheme){
+													const char * sval = ezxml_attr(charset, "val");
+													if(sval)
+														format_set_font_scheme(text_format, sval);
+												}
+											}
+										}
+										
+										//allocate string
+										lxw_rich_string_tuple * string = malloc(sizeof(lxw_rich_string_tuple));
+										if (!string)
+											break;
+
+										string[0].format = text_format;
+										string[0].string = (t->txt);
+										
+										ritch_string[i] = string;
+										
+										i++;
+										
+										//realloc ritch string
+										void *ptr = realloc(ritch_string, sizeof(lxw_rich_string_tuple) + i*sizeof(lxw_rich_string_tuple));
+										if (!ptr)
+											break;
+										ritch_string = ptr;
+									}
+
+								}
+								//NULL-terminate string
+								ritch_string[i] = NULL;
+								
+								//add ritch string
+								worksheet_write_rich_string(ws, CELL(r), ritch_string, format);
+								
+								//free ritch_string
+								int count = i;
+								for (i=0; i<count; ++i)
+									free(ritch_string[i]);
+								free(ritch_string);
+
+							} 
+							//common shared string
+							else {
+								ezxml_t t = ezxml_get(sst, "si", atoi(value), "t", 0, "");
+								if (t){
+									const char * string = t->txt;
+									if(string)
+										worksheet_write_string(ws, CELL(r), string, format);
+								}
+							}						
+						}
 					}
 					else 
 					if (strcmp(type, "str") == 0){
@@ -608,8 +738,13 @@ extern "C" {
 						if(value)
 							worksheet_write_number(ws, CELL(r), atoi(value), format);
 					}
+					ezxml_t f = ezxml_child(cell, "f"); //formula
+					if (f){
+						const char * value = f->txt;
+						if(value)
+							worksheet_write_formula(ws, CELL(r), value, format);
+					}					
 				}
-				
 			}
 		}
 		
