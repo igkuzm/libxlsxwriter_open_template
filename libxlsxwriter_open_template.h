@@ -213,11 +213,13 @@ extern "C" {
 											format_set_color_indexed(format, atoi(fgColor_indexed));
 											has_color = true;
 										}
+										/*
 										const char * fgColor_theme = ezxml_attr(fgColor, "theme"); 
 										if (fgColor_theme){
 											format_set_theme(format, atoi(fgColor_theme));
 											has_color = true;
-										}										
+										}
+										*/										
 									}
 									ezxml_t bgColor = ezxml_child(patternFill, "bgColor");
 									if (bgColor){
@@ -236,11 +238,13 @@ extern "C" {
 											format_set_color_indexed(format, atoi(bgColor_indexed));
 											has_color = true;
 										}										
+										/*
 										const char * bgColor_theme = ezxml_attr(bgColor, "theme"); 
 										if (bgColor_theme){
 											format_set_theme(format, atoi(bgColor_theme));
 											has_color = true;
-										}										
+										}
+										*/										
 									}
 									const char * patternType = ezxml_attr(patternFill, "patternType");
 									if (patternType){
