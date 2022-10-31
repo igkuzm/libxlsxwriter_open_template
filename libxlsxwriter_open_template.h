@@ -2,7 +2,7 @@
  * File              : libxlsxwriter_open_template.h
  * Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
  * Date              : 30.10.2022
- * Last Modified Date: 31.10.2022
+ * Last Modified Date: 01.11.2022
  * Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
  */
 
@@ -66,6 +66,7 @@ extern "C" {
 	};
 
 	const struct key_value border_styles[] = {
+		{LXW_BORDER_NONE,                "none"             },
 		{LXW_BORDER_THIN,                "thin"             },
 		{LXW_BORDER_MEDIUM,              "medium"           },
 		{LXW_BORDER_DASHED,              "dashed"           },
@@ -82,6 +83,7 @@ extern "C" {
 	};
 
 	const struct key_value pattern_types[] = {
+		{LXW_PATTERN_NONE,           	 "none"            },
 		{LXW_PATTERN_SOLID,           	 "solid"           },
 		{LXW_PATTERN_MEDIUM_GRAY,        "mediumGray"      },
 		{LXW_PATTERN_DARK_GRAY,          "darkGray"        },
@@ -346,7 +348,7 @@ extern "C" {
 						}						
 						const char * applyProtection = ezxml_attr(xf, "applyProtection");
 						if (applyProtection){
-							//set xf
+							//cell protect
 						}						
 						const char * applyFont = ezxml_attr(xf, "applyFont");
 						if (applyFont && atoi(applyFont)){
@@ -653,26 +655,26 @@ extern "C" {
 												const char * val = ezxml_attr(rFont, "val");
 												if(val)
 													format_set_font_name(text_format, val);										
+											}
 											
-												ezxml_t family = ezxml_child(rFont, "family");
-												if (family){
-													const char * fval = ezxml_attr(family, "val");
-													if(fval)
-														format_set_font_family(text_format, atoi(fval));
-												}									
+											ezxml_t family = ezxml_child(rPr, "family");
+											if (family){
+												const char * val = ezxml_attr(family, "val");
+												if(val)
+													format_set_font_family(text_format, atoi(val));
+											}									
 
-												ezxml_t charset = ezxml_child(rFont, "charset");
-												if (charset){
-													const char * cval = ezxml_attr(charset, "val");
-													if(cval)
-														format_set_font_charset(text_format, atoi(cval));
-												}
-												ezxml_t scheme = ezxml_child(rFont, "scheme");
-												if (scheme){
-													const char * sval = ezxml_attr(charset, "val");
-													if(sval)
-														format_set_font_scheme(text_format, sval);
-												}
+											ezxml_t charset = ezxml_child(rPr, "charset");
+											if (charset){
+												const char * val = ezxml_attr(charset, "val");
+												if(val)
+													format_set_font_charset(text_format, atoi(val));
+											}
+											ezxml_t scheme = ezxml_child(rPr, "scheme");
+											if (scheme){
+												const char * val = ezxml_attr(charset, "val");
+												if(val)
+													format_set_font_scheme(text_format, val);
 											}
 										}
 										
@@ -13434,7 +13436,7 @@ ezxml_t ezxml_insert(ezxml_t xml, ezxml_t dest, size_t off);
 #include <sys/mman.h>
 #endif // EZXML_NOMMAP
 #include <sys/stat.h>
-#include "ezxml.h"
+//#include "ezxml.h"
 
 #define EZXML_WS   "\t\r\n "  // whitespace
 #define EZXML_ERRL 128        // maximum error string length
