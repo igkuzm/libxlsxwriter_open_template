@@ -27,12 +27,13 @@ extern "C" {
 	 * IMP
 	 */
 
-	struct border_style{
-		uint8_t style;
-		char name[32];	
+	struct key_value{
+		uint8_t value;
+		char    key[32];	
 	};
 
-	const struct border_style border_styles[] = {
+	const struct key_value border_styles[] = {
+		{LXW_BORDER_THIN,                "none"             },
 		{LXW_BORDER_THIN,                "thin"             },
 		{LXW_BORDER_MEDIUM,              "medium"           },
 		{LXW_BORDER_DASHED,              "dashed"           },
@@ -48,11 +49,53 @@ extern "C" {
 		{LXW_BORDER_SLANT_DASH_DOT,      "slantDashDot"     },
 	};
 
+	const struct key_value pattern_types[] = {
+		{LXW_PATTERN_NONE,           	 "none"            },
+		{LXW_PATTERN_SOLID,           	 "solid"           },
+		{LXW_PATTERN_MEDIUM_GRAY,        "mediumGray"      },
+		{LXW_PATTERN_DARK_GRAY,          "darkGray"        },
+		{LXW_PATTERN_LIGHT_GRAY,         "lightGray"       },
+		{LXW_PATTERN_DARK_HORIZONTAL,    "darkHorizontal"  },
+		{LXW_PATTERN_DARK_VERTICAL,      "darkVertical"    },
+		{LXW_PATTERN_DARK_DOWN,          "darkDown"        },
+		{LXW_PATTERN_DARK_UP,            "darkUp"          },
+		{LXW_PATTERN_DARK_GRID,          "darkGrid"        },
+		{LXW_PATTERN_DARK_TRELLIS,       "darkTrellis"     },
+		{LXW_PATTERN_LIGHT_HORIZONTAL,   "lightHorizontal" },
+		{LXW_PATTERN_LIGHT_VERTICAL,     "lightVertical"   },
+		{LXW_PATTERN_LIGHT_DOWN,         "lightDown"       },
+		{LXW_PATTERN_LIGHT_UP,           "lightUp"         },
+		{LXW_PATTERN_LIGHT_GRID,         "lightGrid"       },
+		{LXW_PATTERN_LIGHT_TRELLIS,      "lightTrellis"    },
+		{LXW_PATTERN_GRAY_125,           "gray125"         },
+		{LXW_PATTERN_GRAY_0625,          "gray0625"        },
+	};
+
+	const struct key_value horizontal_alignment[] = {
+		{LXW_ALIGN_LEFT,                 "left"            },
+        {LXW_ALIGN_CENTER,               "center"          },
+        {LXW_ALIGN_RIGHT,                "right"           },
+        {LXW_ALIGN_FILL,                 "fill"            },
+        {LXW_ALIGN_JUSTIFY,              "justify"         },
+        {LXW_ALIGN_CENTER_ACROSS,        "centerContinuous"},
+        {LXW_ALIGN_DISTRIBUTED,          "distributed"     },
+	};
+
+	const struct key_value vertical_alignment[] = {
+		{LXW_ALIGN_VERTICAL_TOP,         "top"             },
+        {LXW_ALIGN_VERTICAL_BOTTOM,      "bottom"          },
+        {LXW_ALIGN_VERTICAL_CENTER,      "center"          },
+        {LXW_ALIGN_VERTICAL_JUSTIFY,     "justify"         },
+        {LXW_ALIGN_VERTICAL_DISTRIBUTED, "distributed"     },
+	};
+
 	void parse_worksheet(lxw_workbook *wb, ezxml_t xml, lxw_worksheet *ws, ezxml_t sst, ezxml_t styles) {
 		/*! TODO: add sheet properties
 		 *  \todo add sheet properties
 		 */
 
+		int i;
+		
 		ezxml_t data = ezxml_child(xml, "sheetData");
 		if (!data){
 			printf("%s\n", "NO DATA IN SHEET");
@@ -60,8 +103,7 @@ extern "C" {
 		//parse cols 
 		ezxml_t cols = ezxml_child(data, "cols");
 		ezxml_t col = ezxml_child(cols, "col");
-		int k = 0;
-		for(; col; col = col->next, k++){
+		for(i=0; col; col = col->next, i++){
 			const char * min = ezxml_attr(col, "min");
 			if (min){
 			}			
@@ -78,15 +120,24 @@ extern "C" {
 			if (customWidth && atoi(customWidth)){
 				const char * width = ezxml_attr(col, "width");
 				if (width){
-					worksheet_set_column(ws, k, k, atof(width), NULL);
+					worksheet_set_column(ws, i, i, atof(width), NULL);
 				}			
 			}			
 		}
 
+		//merge cells
+		ezxml_t mergeCells = ezxml_child(xml, "mergeCells");
+		ezxml_t mergeCell =  ezxml_child(mergeCells, "mergeCell");
+		for (i = 0; mergeCell; ++i, mergeCell = mergeCell->next) {
+			const char * ref = ezxml_attr(mergeCell, "ref");
+			if (ref){
+				worksheet_merge_range(ws, RANGE(ref), "", NULL);
+			}
+		}
+
 		//parse row
 		ezxml_t row = ezxml_child(data, "row");
-		int i = 0;
-		for(; row; row = row->next, i++){
+		for(i=0; row; row = row->next, i++){
 			//get row spans
 			const char * spans = ezxml_attr(row, "spans");
 			if (spans){
@@ -114,10 +165,13 @@ extern "C" {
 
 			//get cell
 			ezxml_t cell = ezxml_child(row, "c");
-			int c = 0;
+			int c = 0, l;
 			for(; cell; cell = cell->next, c++){
 				//cell format
 				lxw_format *format = workbook_add_format(wb);
+
+				//cell ref 
+				const char * r = ezxml_attr(cell, "r");
 				
 				//cell style
 				const char * s = ezxml_attr(cell, "s");
@@ -147,12 +201,20 @@ extern "C" {
 											//get hex from string
 											int rgb_int = 0;
 											sscanf(rgb, "%x", &rgb_int);
-											//set font color
+											//set color
 											format_set_fg_color(format, rgb_int);
 											has_color = true;
 										}
-										const char * fgColor_indexed = ezxml_attr(fgColor, "indexed"); 
+										const char * fgColor_indexed = ezxml_attr(fgColor, "indexed");
+										if (fgColor_indexed){
+											format_set_color_indexed(format, atoi(fgColor_indexed));
+											has_color = true;
+										}
 										const char * fgColor_theme = ezxml_attr(fgColor, "theme"); 
+										//if (fgColor_theme){
+											//format_set_theme(format, atoi(fgColor_theme));
+											//has_color = true;
+										//}										
 									}
 									ezxml_t bgColor = ezxml_child(patternFill, "bgColor");
 									if (bgColor){
@@ -161,7 +223,7 @@ extern "C" {
 											//get hex from string
 											int rgb_int = 0;
 											sscanf(rgb, "%x", &rgb_int);
-											//set font color
+											//set color
 											format_set_bg_color(format, rgb_int);
 											has_color = true;
 										}
@@ -171,28 +233,13 @@ extern "C" {
 									}
 									const char * patternType = ezxml_attr(patternFill, "patternType");
 									if (patternType){
-										uint8_t pattern = 0;
-										if (strcmp(patternType, "solid") == 0 ) pattern = LXW_PATTERN_SOLID;
-										else if (strcmp(patternType, "mediumGray") == 0 ) pattern = LXW_PATTERN_MEDIUM_GRAY;
-										else if (strcmp(patternType, "darkGray") == 0 ) pattern = LXW_PATTERN_DARK_GRAY;
-										else if (strcmp(patternType, "lightGray") == 0 ) pattern = LXW_PATTERN_LIGHT_GRAY;
-										else if (strcmp(patternType, "darkHorizontal") == 0 ) pattern = LXW_PATTERN_DARK_HORIZONTAL;
-										else if (strcmp(patternType, "darkVertical") == 0 ) pattern = LXW_PATTERN_DARK_VERTICAL;
-										else if (strcmp(patternType, "darkDown") == 0 ) pattern = LXW_PATTERN_DARK_DOWN;
-										else if (strcmp(patternType, "darkUp") == 0 ) pattern = LXW_PATTERN_DARK_UP;
-										else if (strcmp(patternType, "darkGrid") == 0 ) pattern = LXW_PATTERN_DARK_GRID;
-										else if (strcmp(patternType, "darkTrellis") == 0 ) pattern = LXW_PATTERN_DARK_TRELLIS;
-										else if (strcmp(patternType, "lightHorizontal") == 0 ) pattern = LXW_PATTERN_LIGHT_HORIZONTAL;
-										else if (strcmp(patternType, "lightVertical") == 0 ) pattern = LXW_PATTERN_LIGHT_VERTICAL;
-										else if (strcmp(patternType, "lightDown") == 0 ) pattern = LXW_PATTERN_LIGHT_DOWN;
-										else if (strcmp(patternType, "lightUp") == 0 ) pattern = LXW_PATTERN_LIGHT_UP;
-										else if (strcmp(patternType, "lightGrid") == 0 ) pattern = LXW_PATTERN_LIGHT_GRID;									
-										else if (strcmp(patternType, "lightTrellis") == 0 ) pattern = LXW_PATTERN_LIGHT_TRELLIS;
-										else if (strcmp(patternType, "gray125") == 0 ) pattern = LXW_PATTERN_GRAY_125;
-										else if (strcmp(patternType, "gray0625") == 0 ) pattern = LXW_PATTERN_GRAY_0625;
-									
-										if (has_color) //cant get color from theme and indexed yet
-											format_set_pattern(format, pattern);
+										if (has_color){ //cant get color from theme and indexed yet
+											for (l=0; l<sizeof(pattern_types)/sizeof(struct key_value); l++)
+												if (strcmp(patternType, pattern_types[l].key) == 0){
+													format_set_pattern(format, pattern_types[l].value);												
+													break;
+												}
+										}
 									}
 								}
 							}						
@@ -230,6 +277,44 @@ extern "C" {
 											format_set_font_color(format, rgb_int);
 										}
 									}									
+									ezxml_t family = ezxml_child(font, "family");
+									if (family){
+										const char * val = ezxml_attr(family, "val");
+										if(val)
+											format_set_font_family(format, atoi(val));
+									}									
+									ezxml_t charset = ezxml_child(font, "charset");
+									if (charset){
+										const char * val = ezxml_attr(charset, "val");
+										if(val)
+											format_set_font_charset(format, atoi(val));
+									}									
+									ezxml_t sz = ezxml_child(font, "sz"); //size
+									if (sz){
+										const char * val = ezxml_attr(sz, "val");
+										if(val)
+											format_set_font_size(format, atof(val));
+									}									
+									ezxml_t b = ezxml_child(font, "b"); //bold
+									if (b){
+										format_set_bold(format);
+									}									
+									ezxml_t i = ezxml_child(font, "i"); //italic
+									if (i){
+										format_set_italic(format);
+									}									
+									ezxml_t outline = ezxml_child(font, "outline"); //outline
+									if (outline){
+										format_set_font_outline(format);
+									}									
+									ezxml_t strike = ezxml_child(font, "strike"); //strike
+									if (strike){
+										format_set_font_strikeout(format);
+									}									
+									ezxml_t shadow = ezxml_child(font, "shadow"); //shadow
+									if (shadow){
+										format_set_font_shadow(format);
+									}									
 								}
 							}						
 						}						
@@ -246,9 +331,9 @@ extern "C" {
 										const char * style = ezxml_attr(left, "style");
 										if (style){
 											int l;
-											for (l=0; l<sizeof(border_styles)/sizeof(struct border_style); l++)
-												if (strcmp(style, border_styles[l].name) == 0){
-													format_set_left(format, border_styles[l].style);
+											for (l=0; l<sizeof(border_styles)/sizeof(struct key_value); l++)
+												if (strcmp(style, border_styles[l].key) == 0){
+													format_set_left(format, border_styles[l].value);
 													break;
 												}
 										}
@@ -268,10 +353,9 @@ extern "C" {
 									if (right) {
 										const char * style = ezxml_attr(right, "style");
 										if (style){
-											int l;
-											for (l=0; l<sizeof(border_styles)/sizeof(struct border_style); l++)
-												if (strcmp(style, border_styles[l].name) == 0){
-													format_set_right(format, border_styles[l].style);
+											for (l=0; l<sizeof(border_styles)/sizeof(struct key_value); l++)
+												if (strcmp(style, border_styles[l].key) == 0){
+													format_set_right(format, border_styles[l].value);
 													break;
 												}
 										}										
@@ -292,9 +376,9 @@ extern "C" {
 										const char * style = ezxml_attr(top, "style");
 										if (style){
 											int l;
-											for (l=0; l<sizeof(border_styles)/sizeof(struct border_style); l++)
-												if (strcmp(style, border_styles[l].name) == 0){
-													format_set_top(format, border_styles[l].style);
+											for (l=0; l<sizeof(border_styles)/sizeof(struct key_value); l++)
+												if (strcmp(style, border_styles[l].key) == 0){
+													format_set_top(format, border_styles[l].value);
 													break;
 												}
 										}	
@@ -315,9 +399,9 @@ extern "C" {
 										const char * style = ezxml_attr(bottom, "style");
 										if (style){
 											int l;
-											for (l=0; l<sizeof(border_styles)/sizeof(struct border_style); l++)
-												if (strcmp(style, border_styles[l].name) == 0){
-													format_set_bottom(format, border_styles[l].style);											
+											for (l=0; l<sizeof(border_styles)/sizeof(struct key_value); l++)
+												if (strcmp(style, border_styles[l].key) == 0){
+													format_set_bottom(format, border_styles[l].value);											
 													break;
 												}
 										}	
@@ -346,25 +430,19 @@ extern "C" {
 							if (alignment){
 								const char * horizontal = ezxml_attr(alignment, "horizontal");
 								if (horizontal){
-									uint8_t alignment = 0;
-									if (strcmp(horizontal, "left") == 0) alignment = LXW_ALIGN_LEFT;
-									else if (strcmp(horizontal, "center") == 0) alignment = LXW_ALIGN_CENTER;
-									else if (strcmp(horizontal, "right") == 0) alignment = LXW_ALIGN_RIGHT;
-									else if (strcmp(horizontal, "fill") == 0) alignment = LXW_ALIGN_FILL;
-									else if (strcmp(horizontal, "justify") == 0) alignment = LXW_ALIGN_JUSTIFY;
-									else if (strcmp(horizontal, "center_across") == 0) alignment = LXW_ALIGN_CENTER_ACROSS;
-									else if (strcmp(horizontal, "distributed") == 0) alignment = LXW_ALIGN_DISTRIBUTED;
-									format_set_align(format, alignment);
+									for (l=0; l<sizeof(horizontal_alignment)/sizeof(struct key_value); l++)
+										if (strcmp(horizontal, horizontal_alignment[l].key) == 0){
+											format_set_align(format, horizontal_alignment[l].value);
+											break;
+										}
 								}
 								const char * vertical = ezxml_attr(alignment, "vertical");
 								if (vertical){
-									uint8_t alignment = 0;
-									if (strcmp(vertical, "top") == 0) alignment = LXW_ALIGN_VERTICAL_TOP;
-									else if (strcmp(vertical, "bottom") == 0) alignment = LXW_ALIGN_VERTICAL_BOTTOM;
-									else if (strcmp(vertical, "center") == 0) alignment = LXW_ALIGN_VERTICAL_CENTER;
-									else if (strcmp(vertical, "justify") == 0) alignment = LXW_ALIGN_VERTICAL_JUSTIFY;
-									else if (strcmp(vertical, "distributed") == 0) alignment = LXW_ALIGN_VERTICAL_DISTRIBUTED;
-									format_set_align(format, alignment);
+									for (l=0; l<sizeof(vertical_alignment)/sizeof(struct key_value); l++)
+										if (strcmp(vertical, vertical_alignment[l].key) == 0){
+											format_set_align(format, vertical_alignment[l].value);
+											break;
+										}
 								}
 								const char * wrapText = ezxml_attr(alignment, "wrapText");
 								if (wrapText && atoi(wrapText)){
@@ -380,6 +458,10 @@ extern "C" {
 				if (type) {
 					if (strcmp(type, "b") == 0){
 						//boolean
+						ezxml_t v = ezxml_child(cell, "v");
+						if (v){
+							worksheet_write_boolean(ws, CELL(r), atoi(v->txt), format);
+						}
 					} 
 					else 
 					if (strcmp(type, "e") == 0){
@@ -392,7 +474,7 @@ extern "C" {
 						if (t){
 							const char * string = t->txt;
 							if(string)
-								worksheet_write_string(ws, i, c, string, format);
+								worksheet_write_string(ws, CELL(r), string, format);
 						}
 					} 
 					else 
@@ -402,7 +484,7 @@ extern "C" {
 						if (v){
 							const char * value = v->txt;
 							if(value)
-								worksheet_write_number(ws, i, c, atoi(value), format);
+								worksheet_write_number(ws, CELL(r), atoi(value), format);
 						}						
 					}
 					else 
@@ -415,7 +497,7 @@ extern "C" {
 							if (t){
 								const char * string = t->txt;
 								if(string)
-									worksheet_write_string(ws, i, c, string, format);
+									worksheet_write_string(ws, CELL(r), string, format);
 							}
 						}						
 					}
@@ -426,7 +508,7 @@ extern "C" {
 						if (f){						
 							const char * formula = f->txt;
 							if(formula)
-								worksheet_write_formula(ws, i, c, formula, format);
+								worksheet_write_formula(ws, CELL(r), formula, format);
 						}
 					} 
 				}
@@ -435,12 +517,13 @@ extern "C" {
 					if (v){
 						const char * value = v->txt;
 						if(value)
-							worksheet_write_number(ws, i, c, atoi(value), format);
+							worksheet_write_number(ws, CELL(r), atoi(value), format);
 					}
 				}
 				
 			}
 		}
+		
 	}	
 	
 	lxw_workbook *workbook_new_from_template(const char *filename, const char *template){
