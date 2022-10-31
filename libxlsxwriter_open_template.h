@@ -73,29 +73,29 @@ extern "C" {
 
 	const struct key_value horizontal_alignment[] = {
 		{LXW_ALIGN_LEFT,                 "left"            },
-        {LXW_ALIGN_CENTER,               "center"          },
-        {LXW_ALIGN_RIGHT,                "right"           },
-        {LXW_ALIGN_FILL,                 "fill"            },
-        {LXW_ALIGN_JUSTIFY,              "justify"         },
-        {LXW_ALIGN_CENTER_ACROSS,        "centerContinuous"},
-        {LXW_ALIGN_DISTRIBUTED,          "distributed"     },
+        	{LXW_ALIGN_CENTER,               "center"          },
+        	{LXW_ALIGN_RIGHT,                "right"           },
+        	{LXW_ALIGN_FILL,                 "fill"            },
+        	{LXW_ALIGN_JUSTIFY,              "justify"         },
+        	{LXW_ALIGN_CENTER_ACROSS,        "centerContinuous"},
+        	{LXW_ALIGN_DISTRIBUTED,          "distributed"     },
 	};
 
 	const struct key_value vertical_alignment[] = {
 		{LXW_ALIGN_VERTICAL_TOP,         "top"             },
-        {LXW_ALIGN_VERTICAL_BOTTOM,      "bottom"          },
-        {LXW_ALIGN_VERTICAL_CENTER,      "center"          },
-        {LXW_ALIGN_VERTICAL_JUSTIFY,     "justify"         },
-        {LXW_ALIGN_VERTICAL_DISTRIBUTED, "distributed"     },
+        	{LXW_ALIGN_VERTICAL_BOTTOM,      "bottom"          },
+        	{LXW_ALIGN_VERTICAL_CENTER,      "center"          },
+        	{LXW_ALIGN_VERTICAL_JUSTIFY,     "justify"         },
+        	{LXW_ALIGN_VERTICAL_DISTRIBUTED, "distributed"     },
 	};
 
 	void parse_worksheet(lxw_workbook *wb, ezxml_t xml, lxw_worksheet *ws, ezxml_t sst, ezxml_t styles) {
+		int i;
+		
 		/*! TODO: add sheet properties
 		 *  \todo add sheet properties
 		 */
 
-		int i;
-		
 		ezxml_t data = ezxml_child(xml, "sheetData");
 		if (!data){
 			printf("%s\n", "NO DATA IN SHEET");
@@ -103,7 +103,7 @@ extern "C" {
 		//parse cols 
 		ezxml_t cols = ezxml_child(data, "cols");
 		ezxml_t col = ezxml_child(cols, "col");
-		for(i=0; col; col = col->next, i++){
+		for(;col; col = col->next){
 			const char * min = ezxml_attr(col, "min");
 			if (min){
 			}			
@@ -119,8 +119,8 @@ extern "C" {
 			const char * customWidth = ezxml_attr(col, "customWidth");
 			if (customWidth && atoi(customWidth)){
 				const char * width = ezxml_attr(col, "width");
-				if (width){
-					worksheet_set_column(ws, i, i, atof(width), NULL);
+				if (width && max && min){
+					worksheet_set_column(ws, atoi(min), atoi(max), atof(width), NULL);
 				}			
 			}			
 		}
@@ -128,7 +128,7 @@ extern "C" {
 		//merge cells
 		ezxml_t mergeCells = ezxml_child(xml, "mergeCells");
 		ezxml_t mergeCell =  ezxml_child(mergeCells, "mergeCell");
-		for (i = 0; mergeCell; ++i, mergeCell = mergeCell->next) {
+		for (; mergeCell; mergeCell = mergeCell->next) {
 			const char * ref = ezxml_attr(mergeCell, "ref");
 			if (ref){
 				worksheet_merge_range(ws, RANGE(ref), "", NULL);
@@ -137,7 +137,10 @@ extern "C" {
 
 		//parse row
 		ezxml_t row = ezxml_child(data, "row");
-		for(i=0; row; row = row->next, i++){
+		for(;row; row = row->next){
+			//get row ref
+			const char * r = ezxml_attr(row, "r");
+			
 			//get row spans
 			const char * spans = ezxml_attr(row, "spans");
 			if (spans){
@@ -147,7 +150,7 @@ extern "C" {
 			if (customHeight && atoi(customHeight)){
 				const char * ht = ezxml_attr(row, "ht");
 				if (ht){
-					worksheet_set_row(ws, i, atof(ht), NULL);
+					worksheet_set_row(ws, atoi(r), atof(ht), NULL);
 				}			
 			}			
 			//thick bottom
@@ -165,8 +168,8 @@ extern "C" {
 
 			//get cell
 			ezxml_t cell = ezxml_child(row, "c");
-			int c = 0, l;
-			for(; cell; cell = cell->next, c++){
+			//int c = 0, l;
+			for(; cell; cell = cell->next){
 				//cell format
 				lxw_format *format = workbook_add_format(wb);
 
@@ -211,10 +214,10 @@ extern "C" {
 											has_color = true;
 										}
 										const char * fgColor_theme = ezxml_attr(fgColor, "theme"); 
-										//if (fgColor_theme){
-											//format_set_theme(format, atoi(fgColor_theme));
-											//has_color = true;
-										//}										
+										if (fgColor_theme){
+											format_set_theme(format, atoi(fgColor_theme));
+											has_color = true;
+										}										
 									}
 									ezxml_t bgColor = ezxml_child(patternFill, "bgColor");
 									if (bgColor){
@@ -229,14 +232,22 @@ extern "C" {
 										}
 										
 										const char * bgColor_indexed = ezxml_attr(bgColor, "indexed"); 
+										if (bgColor_indexed){
+											format_set_color_indexed(format, atoi(bgColor_indexed));
+											has_color = true;
+										}										
 										const char * bgColor_theme = ezxml_attr(bgColor, "theme"); 
+										if (bgColor_theme){
+											format_set_theme(format, atoi(bgColor_theme));
+											has_color = true;
+										}										
 									}
 									const char * patternType = ezxml_attr(patternFill, "patternType");
 									if (patternType){
 										if (has_color){ //cant get color from theme and indexed yet
-											for (l=0; l<sizeof(pattern_types)/sizeof(struct key_value); l++)
-												if (strcmp(patternType, pattern_types[l].key) == 0){
-													format_set_pattern(format, pattern_types[l].value);												
+											for (i=0; i<sizeof(pattern_types)/sizeof(struct key_value); i++)
+												if (strcmp(patternType, pattern_types[i].key) == 0){
+													format_set_pattern(format, pattern_types[i].value);												
 													break;
 												}
 										}
@@ -330,10 +341,9 @@ extern "C" {
 									if (left) {
 										const char * style = ezxml_attr(left, "style");
 										if (style){
-											int l;
-											for (l=0; l<sizeof(border_styles)/sizeof(struct key_value); l++)
-												if (strcmp(style, border_styles[l].key) == 0){
-													format_set_left(format, border_styles[l].value);
+											for (i=0; i<sizeof(border_styles)/sizeof(struct key_value); i++)
+												if (strcmp(style, border_styles[i].key) == 0){
+													format_set_left(format, border_styles[i].value);
 													break;
 												}
 										}
@@ -353,9 +363,9 @@ extern "C" {
 									if (right) {
 										const char * style = ezxml_attr(right, "style");
 										if (style){
-											for (l=0; l<sizeof(border_styles)/sizeof(struct key_value); l++)
-												if (strcmp(style, border_styles[l].key) == 0){
-													format_set_right(format, border_styles[l].value);
+											for (i=0; i<sizeof(border_styles)/sizeof(struct key_value); i++)
+												if (strcmp(style, border_styles[i].key) == 0){
+													format_set_right(format, border_styles[i].value);
 													break;
 												}
 										}										
@@ -375,10 +385,9 @@ extern "C" {
 									if (top) {
 										const char * style = ezxml_attr(top, "style");
 										if (style){
-											int l;
-											for (l=0; l<sizeof(border_styles)/sizeof(struct key_value); l++)
-												if (strcmp(style, border_styles[l].key) == 0){
-													format_set_top(format, border_styles[l].value);
+											for (i=0; i<sizeof(border_styles)/sizeof(struct key_value); i++)
+												if (strcmp(style, border_styles[i].key) == 0){
+													format_set_top(format, border_styles[i].value);
 													break;
 												}
 										}	
@@ -398,10 +407,9 @@ extern "C" {
 									if (bottom) {
 										const char * style = ezxml_attr(bottom, "style");
 										if (style){
-											int l;
-											for (l=0; l<sizeof(border_styles)/sizeof(struct key_value); l++)
-												if (strcmp(style, border_styles[l].key) == 0){
-													format_set_bottom(format, border_styles[l].value);											
+											for (i=0; i<sizeof(border_styles)/sizeof(struct key_value); i++)
+												if (strcmp(style, border_styles[i].key) == 0){
+													format_set_bottom(format, border_styles[i].value);											
 													break;
 												}
 										}	
@@ -430,17 +438,17 @@ extern "C" {
 							if (alignment){
 								const char * horizontal = ezxml_attr(alignment, "horizontal");
 								if (horizontal){
-									for (l=0; l<sizeof(horizontal_alignment)/sizeof(struct key_value); l++)
-										if (strcmp(horizontal, horizontal_alignment[l].key) == 0){
-											format_set_align(format, horizontal_alignment[l].value);
+									for (i=0; i<sizeof(horizontal_alignment)/sizeof(struct key_value); i++)
+										if (strcmp(horizontal, horizontal_alignment[i].key) == 0){
+											format_set_align(format, horizontal_alignment[i].value);
 											break;
 										}
 								}
 								const char * vertical = ezxml_attr(alignment, "vertical");
 								if (vertical){
-									for (l=0; l<sizeof(vertical_alignment)/sizeof(struct key_value); l++)
-										if (strcmp(vertical, vertical_alignment[l].key) == 0){
-											format_set_align(format, vertical_alignment[l].value);
+									for (i=0; i<sizeof(vertical_alignment)/sizeof(struct key_value); i++)
+										if (strcmp(vertical, vertical_alignment[i].key) == 0){
+											format_set_align(format, vertical_alignment[i].value);
 											break;
 										}
 								}
