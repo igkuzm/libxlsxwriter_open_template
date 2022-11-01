@@ -2,14 +2,16 @@
 
 	lxw_workbook *workbook_new_from_template(const char *filename, const char *template);
 
+![demo image](http://libxlsxwriter.github.io/demo.png)
+
 ## Header only file. 
 
 To use - just add `#include libxlsxwriter_open_template.h`
 
-```
+### Example
 
+```c
 #include "libxlsxwriter_open_template.h"
-
 
 int main(int argc, char* argv[])
 {
@@ -22,8 +24,6 @@ int main(int argc, char* argv[])
 	
 	return 0;
 }
-
-
 ```
 
 Uses [ezxml](https://github.com/lxfontes/ezxml) (MIT license),
