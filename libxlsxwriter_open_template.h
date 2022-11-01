@@ -599,6 +599,12 @@ extern "C" {
 							if(value)
 								worksheet_write_number(ws, CELL(r), atoi(value), format);
 						}						
+						ezxml_t f = ezxml_child(cell, "f"); //formula
+						if (f){
+							const char * value = f->txt;
+							if(value)
+								worksheet_write_formula(ws, CELL(r), value, format);
+						}						
 					}
 					else 
 					if (strcmp(type, "s") == 0){
