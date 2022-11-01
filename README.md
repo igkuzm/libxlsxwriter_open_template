@@ -10,7 +10,7 @@ lxw_workbook *workbook_new_from_template(const char *filename, const char *templ
 
 To use - just add 
 ```c 
-#include libxlsxwriter_open_template.h`
+#include "libxlsxwriter_open_template.h"
 ```
 
 ### Example
