@@ -649,6 +649,15 @@ extern "C" {
 													//set font color
 													format_set_font_color(text_format, rgb_int);
 												}
+												const char * indexed = ezxml_attr(color, "indexed"); 
+												if (indexed){
+													format_set_color_indexed(text_format, atoi(indexed));
+												}										
+												
+												const char * theme = ezxml_attr(color, "theme"); 
+												if (theme){
+													format_set_theme(text_format, atoi(theme));
+												}
 											}										
 											ezxml_t rFont = ezxml_child(rPr, "rFont");
 											if (rFont){
