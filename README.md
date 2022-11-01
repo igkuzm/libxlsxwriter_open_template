@@ -2,7 +2,9 @@
 
 	lxw_workbook *workbook_new_from_template(const char *filename, const char *template);
 
-Header only file. To use - just add `#include libxlsxwriter_open_template.h`
+## Header only file. 
+
+To use - just add `#include libxlsxwriter_open_template.h`
 
 ```
 
@@ -23,3 +25,6 @@ int main(int argc, char* argv[])
 
 
 ```
+
+Uses [ezxml](https://github.com/lxfontes/ezxml) (MIT license),
+[zip](https://github.com/kuba--/zip), miniz 
