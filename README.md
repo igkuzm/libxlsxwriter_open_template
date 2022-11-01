@@ -1,7 +1,7 @@
 # Module for libxlsxwriter to open template xlsx file
 
 ```c
-	lxw_workbook *workbook_new_from_template(const char *filename, const char *template);
+lxw_workbook *workbook_new_from_template(const char *filename, const char *template);
 ```
 
 ![demo image](http://libxlsxwriter.github.io/demo.png)
@@ -10,7 +10,7 @@
 
 To use - just add 
 ```c 
-	#include libxlsxwriter_open_template.h`
+#include libxlsxwriter_open_template.h`
 ```
 
 ### Example
