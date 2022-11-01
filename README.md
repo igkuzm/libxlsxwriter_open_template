@@ -1,12 +1,17 @@
 # Module for libxlsxwriter to open template xlsx file
 
+```c
 	lxw_workbook *workbook_new_from_template(const char *filename, const char *template);
+```
 
 ![demo image](http://libxlsxwriter.github.io/demo.png)
 
 ## Header only file. 
 
-To use - just add `#include libxlsxwriter_open_template.h`
+To use - just add 
+```c 
+	#include libxlsxwriter_open_template.h`
+```
 
 ### Example
 
