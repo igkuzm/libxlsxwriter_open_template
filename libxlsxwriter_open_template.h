@@ -147,7 +147,7 @@ extern "C" {
 			const char * hidden = ezxml_attr(col, "hidden");
 			if (hidden){
 				needToSet = true;
-				options.hidden = 1;
+				options.hidden = atoi(hidden);
 			}
 
 			//get col level
