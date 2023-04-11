@@ -179,7 +179,7 @@ extern "C" {
 
 			//set col
 			if(needToSet && max && min)
-				worksheet_set_column_opt(ws, atoi(min), atoi(max), _w, NULL, &options);
+				worksheet_set_column_opt(ws, atoi(min) - 1, atoi(max) - 1, _w, NULL, &options);
 		}
 
 		//merge cells
