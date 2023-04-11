@@ -199,7 +199,7 @@ extern "C" {
 			bool needToSet = false;
 
 			//otions
-			lxw_row_col_options options;
+			lxw_row_col_options options = {0};
 			
 			//get row ref
 			const char * r = ezxml_attr(row, "r");
@@ -208,7 +208,7 @@ extern "C" {
 			const char * hidden = ezxml_attr(row, "hidden");
 			if (hidden){
 				needToSet = true;
-				options.hidden = 1;
+				options.hidden = atoi(hidden);
 			}
 
 			//get row level
