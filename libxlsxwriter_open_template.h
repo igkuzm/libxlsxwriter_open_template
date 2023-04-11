@@ -2,7 +2,7 @@
  * File              : libxlsxwriter_open_template.h
  * Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
  * Date              : 30.10.2022
- * Last Modified Date: 01.11.2022
+ * Last Modified Date: 11.04.2023
  * Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
  */
 
@@ -134,14 +134,14 @@ extern "C" {
 			return;
 		
 		//parse cols 
-		ezxml_t cols = ezxml_child(data, "cols");
+		ezxml_t cols = ezxml_child(xml, "cols");
 		ezxml_t col = ezxml_child(cols, "col");
 		for(;col; col = col->next){
 			double _w = LXW_DEF_COL_WIDTH;
 			bool needToSet = false;
 			
 			//otions
-			lxw_row_col_options options;
+			lxw_row_col_options options = {0};
 
 			//get col hidden
 			const char * hidden = ezxml_attr(col, "hidden");
@@ -172,6 +172,7 @@ extern "C" {
 			if (customWidth && atoi(customWidth)){
 				const char * width = ezxml_attr(col, "width");
 				if (width){
+					needToSet = true;
 					_w = atof(width);
 				}			
 			}			
