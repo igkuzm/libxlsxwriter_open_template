@@ -2,7 +2,7 @@
  * File              : libxlsxwriter_open_template.h
  * Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
  * Date              : 30.10.2022
- * Last Modified Date: 11.04.2023
+ * Last Modified Date: 22.04.2023
  * Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
  */
 
@@ -53,7 +53,21 @@ extern "C" {
 	/*
 	 * create workbook from template
 	 */
-	lxw_workbook *workbook_new_from_template(const char *filename, const char *template);
+	lxw_workbook *workbook_new_from_template(
+			const char *filename, 
+			const char *template,
+			void       *user_data,
+			int       (*callback)(
+				void   *user_data,
+				lxw_workbook  *wb,
+				lxw_worksheet *ws,
+				lxw_row_col_options *options,
+				int    *rown,
+				int    *coln,		
+				lxw_format *format,
+				void   *value
+				)
+	);
 
 
 	/*
@@ -122,7 +136,25 @@ extern "C" {
         {LXW_ALIGN_VERTICAL_DISTRIBUTED, "distributed"     },
 	};
 
-	void parse_worksheet(lxw_workbook *wb, ezxml_t xml, lxw_worksheet *ws, ezxml_t sst, ezxml_t styles) {
+	void parse_worksheet(
+			lxw_workbook *wb, 
+			ezxml_t xml, 
+			lxw_worksheet *ws, 
+			ezxml_t sst, 
+			ezxml_t styles,
+			void       *user_data,
+			int       (*callback)(
+				void   *user_data,
+				lxw_workbook  *wb,
+				lxw_worksheet *ws,
+				lxw_row_col_options *options,
+				int    *rown,
+				int    *coln,		
+				lxw_format *format,
+				void   *value
+				)
+			) 
+	{
 		int i;
 		
 		/*! TODO: add sheet properties
@@ -157,7 +189,7 @@ extern "C" {
 				options.level = atoi(level);			
 			}
 
-			//get col level
+			//get col collapsed
 			const char * collapsed = ezxml_attr(col, "collapsed");
 			if (collapsed){
 				needToSet = true;
@@ -193,8 +225,9 @@ extern "C" {
 		}
 
 		//parse row
+		int rown = 0;
 		ezxml_t row = ezxml_child(data, "row");
-		for(;row; row = row->next){
+		for(;row; row = row->next, rown++){
 			double _h = LXW_DEF_ROW_HEIGHT;
 			bool needToSet = false;
 
@@ -258,7 +291,8 @@ extern "C" {
 			//get cell
 			ezxml_t cell = ezxml_child(row, "c");
 			//int c = 0, l;
-			for(; cell; cell = cell->next){
+			int coln = 0;
+			for(; cell; cell = cell->next, coln++){
 				//cell format
 				lxw_format *format = workbook_add_format(wb);
 
@@ -573,8 +607,11 @@ extern "C" {
 					if (strcmp(type, "b") == 0){
 						//boolean
 						ezxml_t v = ezxml_child(cell, "v");
-						if (v){
-							worksheet_write_boolean(ws, CELL(r), atoi(v->txt), format);
+						if (v && v->txt){
+							//worksheet_write_boolean(ws, CELL(r), atoi(v->txt), format);
+							worksheet_write_boolean(ws, rown, coln, atoi(v->txt), format);
+							if (callback)
+								callback(user_data, wb, ws, &options, &rown, &coln, format, v->txt);
 						}
 					} 
 					else 
@@ -586,9 +623,12 @@ extern "C" {
 						//inline str
 						ezxml_t t = ezxml_get(cell, "is", 0, "t", 0, "");
 						if (t){
-							const char * string = t->txt;
-							if(string)
-								worksheet_write_string(ws, CELL(r), string, format);
+							if(t->txt){
+								//worksheet_write_string(ws, CELL(r), t->txt, format);
+								worksheet_write_string(ws, rown, coln, t->txt, format);
+								if (callback)
+									callback(user_data, wb, ws, &options, &rown, &coln, format, t->txt);
+							}
 						}
 					} 
 					else 
@@ -596,15 +636,21 @@ extern "C" {
 						//number type
 						ezxml_t v = ezxml_child(cell, "v");
 						if (v){
-							const char * value = v->txt;
-							if(value)
-								worksheet_write_number(ws, CELL(r), atoi(value), format);
+							if(v->txt){
+								//worksheet_write_number(ws, CELL(r), atoi(v->txt), format);
+								worksheet_write_number(ws, rown, coln, atoi(v->txt), format);
+								if (callback)
+									callback(user_data, wb, ws, &options, &rown, &coln, format, v->txt);									
+							}
 						}						
 						ezxml_t f = ezxml_child(cell, "f"); //formula
 						if (f){
-							const char * value = f->txt;
-							if(value)
-								worksheet_write_formula(ws, CELL(r), value, format);
+							if(f->txt){
+								//worksheet_write_formula(ws, CELL(r), f->txt, format);
+								worksheet_write_formula(ws, rown, coln, f->txt, format);
+								if (callback)
+									callback(user_data, wb, ws, &options, &rown, &coln, format, f->txt);									
+							}
 						}						
 					}
 					else 
@@ -718,7 +764,10 @@ extern "C" {
 								ritch_string[i] = NULL;
 								
 								//add ritch string
-								worksheet_write_rich_string(ws, CELL(r), ritch_string, format);
+								//worksheet_write_rich_string(ws, CELL(r), ritch_string, format);
+								worksheet_write_rich_string(ws, rown, coln, ritch_string, format);
+								if (callback)
+									callback(user_data, wb, ws, &options, &rown, &coln, format, ritch_string);								
 								
 								//free ritch_string
 								int count = i;
@@ -731,9 +780,12 @@ extern "C" {
 							else {
 								ezxml_t t = ezxml_get(sst, "si", atoi(value), "t", 0, "");
 								if (t){
-									const char * string = t->txt;
-									if(string)
-										worksheet_write_string(ws, CELL(r), string, format);
+									if(t->txt){
+										//worksheet_write_string(ws, CELL(r), t->txt, format);
+										worksheet_write_string(ws, rown, coln, t->txt, format);
+										if (callback)
+											callback(user_data, wb, ws, &options, &rown, &coln, format, t->txt);								
+									}
 								}
 							}						
 						}
@@ -743,24 +795,33 @@ extern "C" {
 						//formula string
 						ezxml_t f = ezxml_child(cell, "f");
 						if (f){						
-							const char * formula = f->txt;
-							if(formula)
-								worksheet_write_formula(ws, CELL(r), formula, format);
+							if(f->txt){
+								//worksheet_write_formula(ws, CELL(r), f->txt, format);
+								worksheet_write_formula(ws, rown, coln, f->txt, format);
+								if (callback)
+									callback(user_data, wb, ws, &options, &rown, &coln, format, f->txt);								
+							}
 						}
 					} 
 				}
 				else {
 					ezxml_t v = ezxml_child(cell, "v");
 					if (v){
-						const char * value = v->txt;
-						if(value)
-							worksheet_write_number(ws, CELL(r), atoi(value), format);
+						if(v->txt){
+							//worksheet_write_number(ws, CELL(r), atoi(v->txt), format);
+							worksheet_write_number(ws, rown, coln, atoi(v->txt), format);
+							if (callback)
+								callback(user_data, wb, ws, &options, &rown, &coln, format, v->txt);								
+						}
 					}
 					ezxml_t f = ezxml_child(cell, "f"); //formula
 					if (f){
-						const char * value = f->txt;
-						if(value)
-							worksheet_write_formula(ws, CELL(r), value, format);
+						if(f->txt){
+							//worksheet_write_formula(ws, CELL(r), f->txt, format);
+							worksheet_write_formula(ws, rown, coln, f->txt, format);
+							if (callback)
+								callback(user_data, wb, ws, &options, &rown, &coln, format, f->txt);								
+						}
 					}					
 				}
 			}
@@ -768,7 +829,22 @@ extern "C" {
 		
 	}	
 	
-	lxw_workbook *workbook_new_from_template(const char *filename, const char *template){
+	lxw_workbook *workbook_new_from_template(
+			const char *filename, 
+			const char *template,
+			void       *user_data,
+			int       (*callback)(
+				void   *user_data,
+				lxw_workbook  *wb,
+				lxw_worksheet *ws,
+				lxw_row_col_options *options,
+				int    *rown,
+				int    *coln,		
+				lxw_format *format,
+				void   *value
+				)			
+			)
+	{
 		//create output file
 		lxw_workbook *wb = workbook_new(filename);
 
@@ -830,7 +906,7 @@ extern "C" {
 				ezxml_t sheet_xml = 
 						ezxml_parse_str((char*)buf, bufsize);
 				if (sheet_xml){
-					parse_worksheet(wb, sheet_xml, ws, sst, styles);	
+					parse_worksheet(wb, sheet_xml, ws, sst, styles, user_data, callback);	
 					ezxml_free(sheet_xml);
 				}
 				zip_entry_close(zip);
