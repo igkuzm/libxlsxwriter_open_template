@@ -62,8 +62,8 @@ extern "C" {
 				lxw_workbook  *wb,
 				lxw_worksheet *ws,
 				lxw_row_col_options *options,
-				int    *rown,
-				int    *coln,		
+				const char *cell,
+				int *addrow,
 				lxw_format *format,
 				void   *value
 				)
@@ -148,8 +148,8 @@ extern "C" {
 				lxw_workbook  *wb,
 				lxw_worksheet *ws,
 				lxw_row_col_options *options,
-				int    *rown,
-				int    *coln,		
+				const char *cell,
+				int *addrow,
 				lxw_format *format,
 				void   *value
 				)
@@ -225,9 +225,9 @@ extern "C" {
 		}
 
 		//parse row
-		int rown = 0;
+		int addrow = 0;
 		ezxml_t row = ezxml_child(data, "row");
-		for(;row; row = row->next, rown++){
+		for(;row; row = row->next){
 			double _h = LXW_DEF_ROW_HEIGHT;
 			bool needToSet = false;
 
@@ -291,8 +291,7 @@ extern "C" {
 			//get cell
 			ezxml_t cell = ezxml_child(row, "c");
 			//int c = 0, l;
-			int coln = 0;
-			for(; cell; cell = cell->next, coln++){
+			for(; cell; cell = cell->next){
 				//cell format
 				lxw_format *format = workbook_add_format(wb);
 
@@ -608,10 +607,9 @@ extern "C" {
 						//boolean
 						ezxml_t v = ezxml_child(cell, "v");
 						if (v && v->txt){
-							//worksheet_write_boolean(ws, CELL(r), atoi(v->txt), format);
-							worksheet_write_boolean(ws, rown, coln, atoi(v->txt), format);
+							worksheet_write_boolean(ws, addrow + CELL(r), atoi(v->txt), format);
 							if (callback)
-								callback(user_data, wb, ws, &options, &rown, &coln, format, v->txt);
+								callback(user_data, wb, ws, &options, r, &addrow, format, v->txt);
 						}
 					} 
 					else 
@@ -624,10 +622,9 @@ extern "C" {
 						ezxml_t t = ezxml_get(cell, "is", 0, "t", 0, "");
 						if (t){
 							if(t->txt){
-								//worksheet_write_string(ws, CELL(r), t->txt, format);
-								worksheet_write_string(ws, rown, coln, t->txt, format);
+								worksheet_write_string(ws, addrow + CELL(r), t->txt, format);
 								if (callback)
-									callback(user_data, wb, ws, &options, &rown, &coln, format, t->txt);
+									callback(user_data, wb, ws, &options, r, &addrow, format, t->txt);
 							}
 						}
 					} 
@@ -637,19 +634,17 @@ extern "C" {
 						ezxml_t v = ezxml_child(cell, "v");
 						if (v){
 							if(v->txt){
-								//worksheet_write_number(ws, CELL(r), atoi(v->txt), format);
-								worksheet_write_number(ws, rown, coln, atoi(v->txt), format);
+								worksheet_write_number(ws, addrow + CELL(r), atoi(v->txt), format);
 								if (callback)
-									callback(user_data, wb, ws, &options, &rown, &coln, format, v->txt);									
+									callback(user_data, wb, ws, &options, r, &addrow, format, v->txt);									
 							}
 						}						
 						ezxml_t f = ezxml_child(cell, "f"); //formula
 						if (f){
 							if(f->txt){
-								//worksheet_write_formula(ws, CELL(r), f->txt, format);
-								worksheet_write_formula(ws, rown, coln, f->txt, format);
+								worksheet_write_formula(ws, addrow + CELL(r), f->txt, format);
 								if (callback)
-									callback(user_data, wb, ws, &options, &rown, &coln, format, f->txt);									
+									callback(user_data, wb, ws, &options, r, &addrow, format, f->txt);									
 							}
 						}						
 					}
@@ -764,10 +759,9 @@ extern "C" {
 								ritch_string[i] = NULL;
 								
 								//add ritch string
-								//worksheet_write_rich_string(ws, CELL(r), ritch_string, format);
-								worksheet_write_rich_string(ws, rown, coln, ritch_string, format);
+								worksheet_write_rich_string(ws, addrow + CELL(r), ritch_string, format);
 								if (callback)
-									callback(user_data, wb, ws, &options, &rown, &coln, format, ritch_string);								
+									callback(user_data, wb, ws, &options, r, &addrow, format, ritch_string);								
 								
 								//free ritch_string
 								int count = i;
@@ -781,10 +775,9 @@ extern "C" {
 								ezxml_t t = ezxml_get(sst, "si", atoi(value), "t", 0, "");
 								if (t){
 									if(t->txt){
-										//worksheet_write_string(ws, CELL(r), t->txt, format);
-										worksheet_write_string(ws, rown, coln, t->txt, format);
+										worksheet_write_string(ws, addrow + CELL(r), t->txt, format);
 										if (callback)
-											callback(user_data, wb, ws, &options, &rown, &coln, format, t->txt);								
+											callback(user_data, wb, ws, &options, r, &addrow, format, t->txt);								
 									}
 								}
 							}						
@@ -796,10 +789,9 @@ extern "C" {
 						ezxml_t f = ezxml_child(cell, "f");
 						if (f){						
 							if(f->txt){
-								//worksheet_write_formula(ws, CELL(r), f->txt, format);
-								worksheet_write_formula(ws, rown, coln, f->txt, format);
+								worksheet_write_formula(ws, addrow + CELL(r), f->txt, format);
 								if (callback)
-									callback(user_data, wb, ws, &options, &rown, &coln, format, f->txt);								
+									callback(user_data, wb, ws, &options, r, &addrow, format, f->txt);								
 							}
 						}
 					} 
@@ -808,19 +800,17 @@ extern "C" {
 					ezxml_t v = ezxml_child(cell, "v");
 					if (v){
 						if(v->txt){
-							//worksheet_write_number(ws, CELL(r), atoi(v->txt), format);
-							worksheet_write_number(ws, rown, coln, atoi(v->txt), format);
+							worksheet_write_number(ws, addrow + CELL(r), atoi(v->txt), format);
 							if (callback)
-								callback(user_data, wb, ws, &options, &rown, &coln, format, v->txt);								
+								callback(user_data, wb, ws, &options, r, &addrow, format, v->txt);								
 						}
 					}
 					ezxml_t f = ezxml_child(cell, "f"); //formula
 					if (f){
 						if(f->txt){
-							//worksheet_write_formula(ws, CELL(r), f->txt, format);
-							worksheet_write_formula(ws, rown, coln, f->txt, format);
+							worksheet_write_formula(ws, addrow + CELL(r), f->txt, format);
 							if (callback)
-								callback(user_data, wb, ws, &options, &rown, &coln, format, f->txt);								
+								callback(user_data, wb, ws, &options, r, &addrow, format, f->txt);								
 						}
 					}					
 				}
@@ -838,8 +828,8 @@ extern "C" {
 				lxw_workbook  *wb,
 				lxw_worksheet *ws,
 				lxw_row_col_options *options,
-				int    *rown,
-				int    *coln,		
+				const char *cell,
+				int *addrow,
 				lxw_format *format,
 				void   *value
 				)			
