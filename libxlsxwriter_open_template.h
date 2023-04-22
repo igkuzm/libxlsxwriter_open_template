@@ -167,17 +167,18 @@ extern "C" {
 				worksheet_set_print_scale(ws, atoi(scale));
 
 			const char * fitToWidth = ezxml_attr(pageSetup, "fitToWidth");			
-			if (fitToWidth){
-				ws->fit_width = atoi(fitToWidth);
-				ws->fit_page  = 1;
-				ws->page_setup_changed = LXW_TRUE;
-			}			
 			const char * fitToHeight = ezxml_attr(pageSetup, "fitToHeight");			
-			if (fitToHeight){
-				ws->fit_height = atoi(fitToHeight);
-				ws->fit_page  = 1;
-				ws->page_setup_changed = LXW_TRUE;
-			}			
+			if (fitToWidth && fitToHeight)
+				worksheet_fit_to_pages(ws, atoi(fitToWidth), atoi(fitToHeight));
+			
+			const char * horizontalDpi = ezxml_attr(pageSetup, "horizontalDpi");			
+			if (horizontalDpi)
+				ws->horizontal_dpi = atoi(horizontalDpi);
+
+			const char * verticalDpi = ezxml_attr(pageSetup, "verticalDpi");			
+			if (verticalDpi)
+				ws->vertical_dpi = atoi(verticalDpi);
+			
 			const char * pageOrder = ezxml_attr(pageSetup, "pageOrder");			
 			if (pageOrder)
 				if (strcmp(pageOrder, "overThenDown") == 0)
@@ -197,20 +198,7 @@ extern "C" {
 			const char * draft = ezxml_attr(pageSetup, "draft");			
 			if (draft)
 				worksheet_set_start_page(ws, atoi(draft));
-			
-			const char * horizontalDpi = ezxml_attr(pageSetup, "horizontalDpi");			
-			if (horizontalDpi){
-				ws->horizontal_dpi = atoi(horizontalDpi);
-				ws->page_setup_changed = LXW_TRUE;
-			}						
-			const char * verticalDpi = ezxml_attr(pageSetup, "verticalDpi");			
-			if (verticalDpi){
-				ws->vertical_dpi = atoi(verticalDpi);
-				ws->page_setup_changed = LXW_TRUE;
-			}			
 		}
-		
-		lxw_worksheet_write_page_setup(ws);
 		
 		//parse cols 
 		ezxml_t cols = ezxml_child(xml, "cols");
