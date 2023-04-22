@@ -221,9 +221,12 @@ extern "C" {
 		for(;row; prev_row = row, row = row->next, rowindex++){
 			
 			/* insert rows */
-			if (insert_rows_count > 0)
-				if (insert_rows_count > addrow++)
+			if (insert_rows_count > addrow){
+				if (insert_rows_index++ == rowindex + 1){
 					row = prev_row;
+					addrow++;
+				}
+			}
 
 			double _h = LXW_DEF_ROW_HEIGHT;
 			bool needToSet = false;
