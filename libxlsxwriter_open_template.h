@@ -155,6 +155,29 @@ extern "C" {
 		if (!data)
 			return;
 
+		//pageMargins
+		ezxml_t pageMargins = ezxml_child(xml, "pageMargins");
+		if (pageMargins){
+			const char * left = ezxml_attr(pageMargins, "left");			
+			const char * right = ezxml_attr(pageMargins, "right");			
+			const char * top = ezxml_attr(pageMargins, "top");			
+			const char * bottom = ezxml_attr(pageMargins, "bottom");			
+			const char * header = ezxml_attr(pageMargins, "header");			
+			const char * footer = ezxml_attr(pageMargins, "footer");			
+			if (left)
+				ws->margin_left = atof(left);
+			if (right)
+				ws->margin_right = atof(right);
+			if (top)
+				ws->margin_top = atof(top);
+			if (bottom)
+				ws->margin_bottom = atof(bottom);
+			if (header)
+				ws->margin_header = atof(header);
+			if (footer)
+				ws->margin_footer = atof(footer);
+		}
+				
 		//pageSetup
 		ezxml_t pageSetup = ezxml_child(xml, "pageSetup");
 		if (pageSetup){
