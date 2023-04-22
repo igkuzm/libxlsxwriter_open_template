@@ -154,6 +154,63 @@ extern "C" {
 		ezxml_t data = ezxml_child(xml, "sheetData");
 		if (!data)
 			return;
+
+		//pageSetup
+		ezxml_t pageSetup = ezxml_child(xml, "pageSetup");
+		if (pageSetup){
+			const char * paperSize = ezxml_attr(pageSetup, "paperSize");			
+			if (paperSize)
+				worksheet_set_paper(ws, atoi(paperSize));
+			
+			const char * scale = ezxml_attr(pageSetup, "scale");			
+			if (scale)
+				worksheet_set_print_scale(ws, atoi(scale));
+
+			const char * fitToWidth = ezxml_attr(pageSetup, "fitToWidth");			
+			if (fitToWidth){
+				ws->fit_width = atoi(fitToWidth);
+				ws->fit_page  = 1;
+				ws->page_setup_changed = LXW_TRUE;
+			}			
+			const char * fitToHeight = ezxml_attr(pageSetup, "fitToHeight");			
+			if (fitToHeight){
+				ws->fit_height = atoi(fitToHeight);
+				ws->fit_page  = 1;
+				ws->page_setup_changed = LXW_TRUE;
+			}			
+			const char * pageOrder = ezxml_attr(pageSetup, "pageOrder");			
+			if (pageOrder)
+				if (strcmp(pageOrder, "overThenDown") == 0)
+					worksheet_print_across(ws);
+			
+			const char * orientation = ezxml_attr(pageSetup, "orientation");			
+			if (orientation){
+				if (strcmp(orientation, "portrait") == 0)
+					worksheet_set_portrait(ws);
+				else 
+					worksheet_set_landscape(ws);
+			}			
+			const char * blackAndWhite = ezxml_attr(pageSetup, "blackAndWhite");			
+			if (blackAndWhite && atoi(blackAndWhite))
+				worksheet_print_black_and_white(ws);
+			
+			const char * draft = ezxml_attr(pageSetup, "draft");			
+			if (draft)
+				worksheet_set_start_page(ws, atoi(draft));
+			
+			const char * horizontalDpi = ezxml_attr(pageSetup, "horizontalDpi");			
+			if (horizontalDpi){
+				ws->horizontal_dpi = atoi(horizontalDpi);
+				ws->page_setup_changed = LXW_TRUE;
+			}						
+			const char * verticalDpi = ezxml_attr(pageSetup, "verticalDpi");			
+			if (verticalDpi){
+				ws->vertical_dpi = atoi(verticalDpi);
+				ws->page_setup_changed = LXW_TRUE;
+			}			
+		}
+		
+		lxw_worksheet_write_page_setup(ws);
 		
 		//parse cols 
 		ezxml_t cols = ezxml_child(xml, "cols");
