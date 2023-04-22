@@ -599,6 +599,9 @@ extern "C" {
 						}						
 					}
 				}
+
+				//write clean cell
+				worksheet_write_string(ws, addrow + CELL(r), "", format);				
 				
 				//cell type
 				const char * type = ezxml_attr(cell, "t");
